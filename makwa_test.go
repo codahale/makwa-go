@@ -31,7 +31,7 @@ func TestHash(t *testing.T) {
 	}
 
 	if !bytes.Equal(d.ModulusID, modulusID) {
-		t.Errorf("ModulusID was %x but expected %x", d.Hash, hash)
+		t.Errorf("ModulusID was %x but expected %x", d.ModulusID, modulusID)
 	}
 
 	if !bytes.Equal(d.Hash, hash) {
