@@ -37,7 +37,10 @@ func (d *Digest) MarshalText() ([]byte, error) {
 			_, _ = b.WriteRune('n')
 		}
 	}
-	man, log := wfMant(uint32(d.WorkFactor))
+	man, log, err := wfMant(uint32(d.WorkFactor))
+	if err != nil {
+		return nil, err
+	}
 	_, _ = b.WriteString(fmt.Sprintf(
 		"%1d%02d",
 		man,

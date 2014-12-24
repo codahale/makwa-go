@@ -24,6 +24,10 @@ var ErrBadPassword = errors.New("bad password")
 // parameters.
 var ErrWrongParams = errors.New("wrong parameters")
 
+// ErrInvalidWorkFactor is returned when the given work factor cannot be encoded
+// as a power of 2 or 3.
+var ErrInvalidWorkFactor = errors.New("invalid work factor")
+
 // CheckPassword safely compares a password to a digest of a password.
 func CheckPassword(
 	params PublicParameters,
@@ -81,6 +85,10 @@ func Hash(
 	preHash bool,
 	postHashLen uint,
 ) (*Digest, error) {
+	if _, _, err := wfMant(uint32(workFactor)); err != nil {
+		return nil, err
+	}
+
 	if salt == nil {
 		salt = make([]byte, 16)
 		if _, err := rand.Read(salt); err != nil {
@@ -186,7 +194,7 @@ func mac(alg func() hash.Hash, k, v []byte) []byte {
 	return h.Sum(nil)
 }
 
-func wfMant(wf uint32) (mant, log uint32) {
+func wfMant(wf uint32) (mant, log uint32, err error) {
 	j := uint32(0)
 	for wf > 3 && (wf&1) == 0 {
 		wf = (wf >> 1) | (wf << 31)
@@ -194,8 +202,9 @@ func wfMant(wf uint32) (mant, log uint32) {
 	}
 
 	if !(wf == 2 || wf == 3) {
-		panic("invalid work factor")
+		err = ErrInvalidWorkFactor
+		return
 	}
 
-	return wf, j
+	return wf, j, nil
 }
