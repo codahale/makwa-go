@@ -22,19 +22,19 @@ func TestDigestMarshalText(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if v, want := string(b), "+RK3n5jz7gs=_s211_xycDwiqW2ZkvPeqHZJfjkg==_yc6g5u8JOTqxcQoI"; v != want {
+	if v, want := string(b), "+RK3n5jz7gs_s211_xycDwiqW2ZkvPeqHZJfjkg_yc6g5u8JOTqxcQoI"; v != want {
 		t.Errorf("Was %s, but expected %s", v, want)
 	}
 }
 
 func TestDigestUnmarshalText(t *testing.T) {
 	d := &makwa.Digest{}
-	if err := d.UnmarshalText([]byte("+RK3n5jz7gs=_s211_xycDwiqW2ZkvPeqHZJfjkg==_yc6g5u8JOTqxcQoI")); err != nil {
+	if err := d.UnmarshalText([]byte("+RK3n5jz7gs_s211_xycDwiqW2ZkvPeqHZJfjkg_yc6g5u8JOTqxcQoI")); err != nil {
 		t.Fatal(err)
 	}
 
 	if !bytes.Equal(d.ModulusID, modulusID) {
-		t.Errorf("ModulusID was %x but expected %x", d.Hash, hash)
+		t.Errorf("ModulusID was %x but expected %x", d.ModulusID, modulusID)
 	}
 
 	if !bytes.Equal(d.Hash, hash) {

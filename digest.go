@@ -2,7 +2,7 @@ package makwa
 
 import (
 	"bytes"
-	"encoding/base64"
+	"errors"
 	"fmt"
 	"strconv"
 )
@@ -19,11 +19,9 @@ type Digest struct {
 
 // MarshalText marshals a digest into a text format.
 func (d *Digest) MarshalText() ([]byte, error) {
-	// BUG(coda): Doesn't elide Base64 padding.
-
 	b := new(bytes.Buffer)
 
-	_, _ = b.WriteString(base64.StdEncoding.EncodeToString(d.ModulusID))
+	_, _ = b.Write(b64Encode(d.ModulusID))
 	_, _ = b.WriteRune('_')
 
 	if d.PreHash {
@@ -47,26 +45,23 @@ func (d *Digest) MarshalText() ([]byte, error) {
 	))
 	_, _ = b.WriteRune('_')
 
-	_, _ = b.WriteString(base64.StdEncoding.EncodeToString(d.Salt))
+	_, _ = b.Write(b64Encode(d.Salt))
 	_, _ = b.WriteRune('_')
 
-	_, _ = b.WriteString(base64.StdEncoding.EncodeToString(d.Hash))
+	_, _ = b.Write(b64Encode(d.Hash))
 
 	return b.Bytes(), nil
 }
 
 // UnmarshalText unmarshals a digest from a text format.
 func (d *Digest) UnmarshalText(text []byte) error {
-	// BUG(coda): Can't unmarshal unpadded Base64.
-
 	parts := bytes.Split(text, []byte{'_'})
 
-	d.ModulusID = make([]byte, len(parts[0]))
-	n, err := base64.StdEncoding.Decode(d.ModulusID, parts[0])
+	var err error
+	d.ModulusID, err = b64Decode(parts[0])
 	if err != nil {
 		return err
 	}
-	d.ModulusID = d.ModulusID[:n]
 
 	mantissa, err := strconv.Atoi(string(parts[1][1:2]))
 	if err != nil {
@@ -83,13 +78,15 @@ func (d *Digest) UnmarshalText(text []byte) error {
 		d.WorkFactor *= uint(mantissa)
 	}
 
-	d.Salt = make([]byte, len(parts[2]))
-	n, err = base64.StdEncoding.Decode(d.Salt, append(parts[2], '='))
-	d.Salt = d.Salt[:n]
+	d.Salt, err = b64Decode(parts[2])
+	if err != nil {
+		return err
+	}
 
-	d.Hash = make([]byte, len(parts[3]))
-	n, err = base64.StdEncoding.Decode(d.Hash, append(parts[3], '='))
-	d.Hash = d.Hash[:n]
+	d.Hash, err = b64Decode(parts[3])
+	if err != nil {
+		return err
+	}
 
 	switch parts[1][0] {
 	case 'b':
@@ -107,4 +104,91 @@ func (d *Digest) UnmarshalText(text []byte) error {
 	}
 
 	return nil
+}
+
+const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+func b64Encode(b []byte) []byte {
+	out := bytes.NewBuffer(make([]byte, 0, len(b)))
+	for len(b) >= 3 {
+		w := uint(b[0]) & 0xFF
+		w = (w << 8) + (uint(b[1]) & 0xFF)
+		w = (w << 8) + (uint(b[2]) & 0xFF)
+		b = b[3:]
+
+		_ = out.WriteByte(alphabet[w>>18])
+		_ = out.WriteByte(alphabet[(w>>12)&0x3F])
+		_ = out.WriteByte(alphabet[(w>>6)&0x3F])
+		_ = out.WriteByte(alphabet[w&0x3F])
+	}
+
+	switch len(b) {
+	case 1:
+		w := uint(b[0]) & 0xFF
+		_ = out.WriteByte(alphabet[w>>2])
+		_ = out.WriteByte(alphabet[(w<<4)&0x3F])
+	case 2:
+		w := (uint(b[0]) & 0xFF) << 8
+		w += uint(b[1]) & 0xFF
+		_ = out.WriteByte(alphabet[w>>10])
+		_ = out.WriteByte(alphabet[(w>>4)&0x3F])
+		_ = out.WriteByte(alphabet[(w<<2)&0x3F])
+	}
+
+	return out.Bytes()
+}
+
+func b64Decode(b []byte) ([]byte, error) {
+	out := bytes.NewBuffer(make([]byte, 0, len(b)))
+	var numEq, acc, k int32
+	for i := range b {
+		d := int32(b[i])
+		if d >= 'A' && d <= 'Z' {
+			d -= 'A'
+		} else if d >= 'a' && d <= 'z' {
+			d -= ('a' - 26)
+		} else if d >= '0' && d <= '9' {
+			d -= ('0' - 52)
+		} else if d == '+' {
+			d = 62
+		} else if d == '/' {
+			d = 63
+		} else {
+			return nil, errors.New("bad base64")
+		}
+
+		if d < 0 {
+			d = 0
+		} else {
+			if numEq != 0 {
+				return nil, errors.New("bad base64")
+			}
+		}
+		acc = (acc << 6) + d
+		k++
+		if k == 4 {
+			_ = out.WriteByte(byte((acc >> 16) | (acc << 16)))
+			_ = out.WriteByte(byte((acc >> 8) | (acc << 24)))
+			_ = out.WriteByte(byte(acc))
+			acc = 0
+			k = 0
+		}
+	}
+
+	if k != 0 {
+
+		if k == 1 {
+			panic("truncated Base64 input")
+		}
+
+		switch k {
+		case 2:
+			_ = out.WriteByte(byte((acc >> 4) | (acc << 28)))
+		case 3:
+			_ = out.WriteByte(byte((acc >> 10) | (acc << 22)))
+			_ = out.WriteByte(byte((acc >> 2) | (acc << 30)))
+		}
+	}
+
+	return out.Bytes(), nil
 }

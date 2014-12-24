@@ -11,7 +11,7 @@ import (
 
 func TestCheckPassword(t *testing.T) {
 	d := &makwa.Digest{}
-	if err := d.UnmarshalText([]byte("+RK3n5jz7gs=_s211_xycDwiqW2ZkvPeqHZJfjkg==_yc6g5u8JOTqxcQoI")); err != nil {
+	if err := d.UnmarshalText([]byte("+RK3n5jz7gs_s211_xycDwiqW2ZkvPeqHZJfjkg_yc6g5u8JOTqxcQoI")); err != nil {
 		t.Fatal(err)
 	}
 
