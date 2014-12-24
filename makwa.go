@@ -9,6 +9,7 @@ package makwa
 
 import (
 	"crypto/hmac"
+	"crypto/rand"
 	"crypto/subtle"
 	"errors"
 	"hash"
@@ -42,7 +43,8 @@ func CheckPassword(
 	return nil
 }
 
-// Hash returns a digest of the given password using the given parameters.
+// Hash returns a digest of the given password using the given parameters. If
+// the given salt is nil, generates a random salt of sufficient length.
 func Hash(
 	password, salt []byte,
 	params PublicParameters,
@@ -50,6 +52,13 @@ func Hash(
 	preHash bool,
 	postHashLen uint,
 ) (*Digest, error) {
+	if salt == nil {
+		salt = make([]byte, 16)
+		if _, err := rand.Read(salt); err != nil {
+			return nil, err
+		}
+	}
+
 	if preHash {
 		password = kdf(params.Hash, password, 64)
 	}
