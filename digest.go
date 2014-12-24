@@ -138,6 +138,9 @@ func b64Encode(b []byte) []byte {
 	return out.Bytes()
 }
 
+// ErrBadBase64 is returned when the provided Base64 value cannot be decoded.
+var ErrBadBase64 = errors.New("bad base64")
+
 func b64Decode(b []byte) ([]byte, error) {
 	out := bytes.NewBuffer(make([]byte, 0, len(b)))
 	var numEq, acc, k int32
@@ -154,14 +157,14 @@ func b64Decode(b []byte) ([]byte, error) {
 		} else if d == '/' {
 			d = 63
 		} else {
-			return nil, errors.New("bad base64")
+			return nil, ErrBadBase64
 		}
 
 		if d < 0 {
 			d = 0
 		} else {
 			if numEq != 0 {
-				return nil, errors.New("bad base64")
+				return nil, ErrBadBase64
 			}
 		}
 		acc = (acc << 6) + d
@@ -178,7 +181,7 @@ func b64Decode(b []byte) ([]byte, error) {
 	if k != 0 {
 
 		if k == 1 {
-			panic("truncated Base64 input")
+			return nil, ErrBadBase64
 		}
 
 		switch k {
