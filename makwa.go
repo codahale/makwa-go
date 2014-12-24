@@ -20,16 +20,14 @@ var ErrBadPassword = errors.New("bad password")
 
 // CheckPassword safely compares a password to a digest of a password.
 func CheckPassword(
-	modulus *big.Int,
-	alg func() hash.Hash,
+	params PublicParameters,
 	digest *Digest,
 	password []byte,
 ) error {
 	d, err := Hash(
 		password,
 		digest.Salt,
-		modulus,
-		alg,
+		params,
 		digest.WorkFactor,
 		digest.PreHash,
 		digest.PostHashLen,
@@ -47,17 +45,16 @@ func CheckPassword(
 // Hash returns a digest of the given password using the given parameters.
 func Hash(
 	password, salt []byte,
-	modulus *big.Int,
-	alg func() hash.Hash,
+	params PublicParameters,
 	workFactor uint,
 	preHash bool,
 	postHashLen uint,
 ) (*Digest, error) {
 	if preHash {
-		password = kdf(alg, password, 64)
+		password = kdf(params.Hash, password, 64)
 	}
 
-	k := modulus.BitLen() / 8
+	k := params.N.BitLen() / 8
 	if k < 160 {
 		return nil, errors.New("modulus too short")
 	}
@@ -67,26 +64,24 @@ func Hash(
 		return nil, errors.New("password too long")
 	}
 
-	modulusID := kdf(alg, modulus.Bytes(), 8)
-
 	// sb = KDF(salt || password || BYTE(u), k - 2 - u)
-	sb := kdf(alg, append(append(salt, password...), byte(u)), uint(k-2-u))
+	sb := kdf(params.Hash, append(append(salt, password...), byte(u)), uint(k-2-u))
 
 	//xb = BYTE(0x00) || sb || password || BYTE(u)
 	xb := append(append(append([]byte{0x00}, sb...), password...), byte(u))
 
 	x := new(big.Int).SetBytes(xb)
 	for i := uint(0); i <= workFactor; i++ {
-		x = new(big.Int).Exp(x, two, modulus)
+		x = new(big.Int).Exp(x, two, params.N)
 	}
 
-	out := pad(modulus, x)
+	out := pad(params.N, x)
 	if postHashLen > 0 {
-		out = kdf(alg, out, postHashLen)
+		out = kdf(params.Hash, out, postHashLen)
 	}
 
 	return &Digest{
-		ModulusID:   modulusID,
+		ModulusID:   params.ModulusID(),
 		Hash:        out,
 		Salt:        salt,
 		WorkFactor:  workFactor,

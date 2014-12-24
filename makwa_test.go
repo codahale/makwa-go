@@ -15,17 +15,17 @@ func TestCheckPassword(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := makwa.CheckPassword(modulus, sha256.New, d, password); err != nil {
+	if err := makwa.CheckPassword(params, d, password); err != nil {
 		t.Error(err)
 	}
 
-	if err := makwa.CheckPassword(modulus, sha256.New, d, []byte("wink")); err != makwa.ErrBadPassword {
+	if err := makwa.CheckPassword(params, d, []byte("wink")); err != makwa.ErrBadPassword {
 		t.Errorf("Error was %v, but expected ErrBadPassword", err)
 	}
 }
 
 func TestHash(t *testing.T) {
-	d, err := makwa.Hash(password, salt, modulus, sha256.New, 4096, false, 12)
+	d, err := makwa.Hash(password, salt, params, 4096, false, 12)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,6 +56,7 @@ func TestHash(t *testing.T) {
 }
 
 var (
+	params    makwa.PublicParameters
 	modulusID = []byte{0xf9, 0x12, 0xb7, 0x9f, 0x98, 0xf3, 0xee, 0xb}
 	hash      = []byte{0xC9, 0xCE, 0xA0, 0xE6, 0xEF, 0x09, 0x39, 0x3A, 0xB1, 0x71, 0x0A, 0x08}
 	password  = []byte("Gego beshwaji'aaken awe makwa; onzaam naniizaanizi.")
@@ -68,5 +69,6 @@ func init() {
 	if !ok {
 		panic("couldn't parse modulus")
 	}
-	modulus = n
+	params.N = n
+	params.Hash = sha256.New
 }
