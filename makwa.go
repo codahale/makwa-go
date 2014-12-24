@@ -52,6 +52,26 @@ func CheckPassword(
 	return nil
 }
 
+// Extend re-hashes the given digest to increase its work factor.
+func Extend(params PublicParameters, digest *Digest, workFactor uint) error {
+	if !bytes.Equal(digest.ModulusID, params.ModulusID()) {
+		return ErrWrongParams
+	}
+
+	if digest.PostHashLen > 0 {
+		return errors.New("digest cannot be extended")
+	}
+
+	x := new(big.Int).SetBytes(digest.Hash)
+	for i := digest.WorkFactor; i < workFactor; i++ {
+		x = new(big.Int).Exp(x, two, params.N)
+	}
+	digest.Hash = x.Bytes()
+	digest.WorkFactor = workFactor
+
+	return nil
+}
+
 // Hash returns a digest of the given password using the given parameters. If
 // the given salt is nil, generates a random salt of sufficient length.
 func Hash(

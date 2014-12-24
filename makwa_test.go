@@ -9,6 +9,21 @@ import (
 	"github.com/codahale/makwa"
 )
 
+func TestExtend(t *testing.T) {
+	d, err := makwa.Hash(password, nil, params, 1024, true, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := makwa.Extend(params, d, 4096); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := makwa.CheckPassword(params, d, password); err != nil {
+		t.Error(err)
+	}
+}
+
 func TestCheckPassword(t *testing.T) {
 	d := &makwa.Digest{}
 	if err := d.UnmarshalText([]byte("+RK3n5jz7gs_s211_xycDwiqW2ZkvPeqHZJfjkg_yc6g5u8JOTqxcQoI")); err != nil {
