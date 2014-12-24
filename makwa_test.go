@@ -39,7 +39,7 @@ func TestHash(t *testing.T) {
 	}
 
 	if !bytes.Equal(d.Salt, salt) {
-		t.Errorf("Salt was %x but expected %x", d.Hash, hash)
+		t.Errorf("Salt was %x but expected %x", d.Salt, salt)
 	}
 
 	if v, want := d.WorkFactor, uint(4096); v != want {
