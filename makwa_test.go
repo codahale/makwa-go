@@ -1,29 +1,117 @@
-package makwa
+package makwa_test
 
 import (
 	"bytes"
 	"crypto/sha256"
 	"math/big"
 	"testing"
+
+	"github.com/codahale/makwa"
 )
 
-func TestHash(t *testing.T) {
-	actual, err := Hash(password, salt, modulus, sha256.New, 4096, false, 12)
+func TestDigestMarshalText(t *testing.T) {
+	d := &makwa.Digest{
+		ModulusID:   modulusID,
+		Hash:        hash,
+		Salt:        salt,
+		WorkFactor:  4096,
+		PreHash:     false,
+		PostHashLen: 12,
+	}
+
+	b, err := d.MarshalText()
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expected := []byte{0xC9, 0xCE, 0xA0, 0xE6, 0xEF, 0x09, 0x39, 0x3A, 0xB1, 0x71, 0x0A, 0x08}
+	if v, want := string(b), "+RK3n5jz7gs=_s211_xycDwiqW2ZkvPeqHZJfjkg==_yc6g5u8JOTqxcQoI"; v != want {
+		t.Errorf("Was %s, but expected %s", v, want)
+	}
+}
 
-	if !bytes.Equal(actual.Hash, expected) {
-		t.Errorf("Hash was %x but expected %x", actual, expected)
+func TestDigestUnmarshalText(t *testing.T) {
+	d := &makwa.Digest{}
+	if err := d.UnmarshalText([]byte("+RK3n5jz7gs=_s211_xycDwiqW2ZkvPeqHZJfjkg==_yc6g5u8JOTqxcQoI")); err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(d.ModulusID, modulusID) {
+		t.Errorf("ModulusID was %x but expected %x", d.Hash, hash)
+	}
+
+	if !bytes.Equal(d.Hash, hash) {
+		t.Errorf("Hash was %x but expected %x", d.Hash, hash)
+	}
+
+	if !bytes.Equal(d.Salt, salt) {
+		t.Errorf("Salt was %x but expected %x", d.Hash, hash)
+	}
+
+	if v, want := d.WorkFactor, uint(4096); v != want {
+		t.Errorf("WorkFactor was %v, but expected %v", v, want)
+	}
+
+	if d.PreHash {
+		t.Errorf("PreHash was %v, but expected false", d.PreHash)
+	}
+
+	if v, want := d.PostHashLen, uint(12); v != want {
+		t.Errorf("PostHashLen was %v, but expected %v", v, want)
+	}
+}
+
+func TestCheckPassword(t *testing.T) {
+	d := &makwa.Digest{}
+	if err := d.UnmarshalText([]byte("+RK3n5jz7gs=_s211_xycDwiqW2ZkvPeqHZJfjkg==_yc6g5u8JOTqxcQoI")); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := makwa.CheckPassword(modulus, sha256.New, d, password); err != nil {
+		t.Error(err)
+	}
+
+	if err := makwa.CheckPassword(modulus, sha256.New, d, []byte("wink")); err != makwa.ErrBadPassword {
+		t.Errorf("Error was %v, but expected ErrBadPassword", err)
+	}
+}
+
+func TestHash(t *testing.T) {
+	d, err := makwa.Hash(password, salt, modulus, sha256.New, 4096, false, 12)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(d.ModulusID, modulusID) {
+		t.Errorf("ModulusID was %x but expected %x", d.Hash, hash)
+	}
+
+	if !bytes.Equal(d.Hash, hash) {
+		t.Errorf("Hash was %x but expected %x", d.Hash, hash)
+	}
+
+	if !bytes.Equal(d.Salt, salt) {
+		t.Errorf("Salt was %x but expected %x", d.Hash, hash)
+	}
+
+	if v, want := d.WorkFactor, uint(4096); v != want {
+		t.Errorf("WorkFactor was %v, but expected %v", v, want)
+	}
+
+	if d.PreHash {
+		t.Errorf("PreHash was %v, but expected false", d.PreHash)
+	}
+
+	if v, want := d.PostHashLen, uint(12); v != want {
+		t.Errorf("PostHashLen was %v, but expected %v", v, want)
 	}
 }
 
 var (
-	password = []byte("Gego beshwaji'aaken awe makwa; onzaam naniizaanizi.")
-	salt     = []byte{0xC7, 0x27, 0x03, 0xC2, 0x2A, 0x96, 0xD9, 0x99, 0x2F, 0x3D, 0xEA, 0x87, 0x64, 0x97, 0xE3, 0x92}
-	modulus  *big.Int
+	modulusID = []byte{0xf9, 0x12, 0xb7, 0x9f, 0x98, 0xf3, 0xee, 0xb}
+	hash      = []byte{0xC9, 0xCE, 0xA0, 0xE6, 0xEF, 0x09, 0x39, 0x3A, 0xB1, 0x71, 0x0A, 0x08}
+	password  = []byte("Gego beshwaji'aaken awe makwa; onzaam naniizaanizi.")
+	salt      = []byte{0xC7, 0x27, 0x03, 0xC2, 0x2A, 0x96, 0xD9, 0x99, 0x2F, 0x3D, 0xEA, 0x87, 0x64, 0x97, 0xE3, 0x92}
+	modulus   *big.Int
 )
 
 func init() {
