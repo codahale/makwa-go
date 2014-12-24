@@ -8,6 +8,7 @@
 package makwa
 
 import (
+	"bytes"
 	"crypto/hmac"
 	"crypto/rand"
 	"crypto/subtle"
@@ -19,12 +20,20 @@ import (
 // ErrBadPassword is returned when a bad password is provided.
 var ErrBadPassword = errors.New("bad password")
 
+// ErrWrongParams is returned when a password is being checked using the wrong
+// parameters.
+var ErrWrongParams = errors.New("wrong parameters")
+
 // CheckPassword safely compares a password to a digest of a password.
 func CheckPassword(
 	params PublicParameters,
 	digest *Digest,
 	password []byte,
 ) error {
+	if !bytes.Equal(digest.ModulusID, params.ModulusID()) {
+		return ErrWrongParams
+	}
+
 	d, err := Hash(
 		password,
 		digest.Salt,
