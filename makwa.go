@@ -35,9 +35,9 @@ func CheckPassword(
 	}
 
 	d, err := Hash(
+		params,
 		password,
 		digest.Salt,
-		params,
 		digest.WorkFactor,
 		digest.PreHash,
 		digest.PostHashLen,
@@ -75,8 +75,8 @@ func Extend(params PublicParameters, digest *Digest, workFactor uint) error {
 // Hash returns a digest of the given password using the given parameters. If
 // the given salt is nil, generates a random salt of sufficient length.
 func Hash(
-	password, salt []byte,
 	params PublicParameters,
+	password, salt []byte,
 	workFactor uint,
 	preHash bool,
 	postHashLen uint,

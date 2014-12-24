@@ -10,7 +10,7 @@ import (
 )
 
 func TestExtend(t *testing.T) {
-	d, err := makwa.Hash(password, nil, params, 1024, true, 0)
+	d, err := makwa.Hash(params, password, nil, 1024, true, 0)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestCheckPassword(t *testing.T) {
 }
 
 func TestHash(t *testing.T) {
-	d, err := makwa.Hash(password, salt, params, 4096, false, 12)
+	d, err := makwa.Hash(params, password, salt, 4096, false, 12)
 	if err != nil {
 		t.Fatal(err)
 	}
