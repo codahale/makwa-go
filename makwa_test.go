@@ -8,19 +8,14 @@ import (
 )
 
 func TestHash(t *testing.T) {
-	params := Parameters{
-		HashAlgorithm: sha256.New,
-		Modulus:       modulus,
-	}
-
-	actual, err := params.Hash(password, salt, 4096, false, 12)
+	actual, err := Hash(password, salt, modulus, sha256.New, 4096, false, 12)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	expected := []byte{0xC9, 0xCE, 0xA0, 0xE6, 0xEF, 0x09, 0x39, 0x3A, 0xB1, 0x71, 0x0A, 0x08}
 
-	if !bytes.Equal(actual, expected) {
+	if !bytes.Equal(actual.Hash, expected) {
 		t.Errorf("Hash was %x but expected %x", actual, expected)
 	}
 }
