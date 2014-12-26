@@ -70,6 +70,27 @@ func TestHash(t *testing.T) {
 	}
 }
 
+func TestRecover(t *testing.T) {
+	params, err := makwa.GenerateParameters(2048)
+	if err != nil {
+		t.Fatal(t)
+	}
+
+	d, err := makwa.Hash(params.PublicParameters, password, salt, 4096, false, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	recovered, err := makwa.Recover(*params, d)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if !bytes.Equal(password, recovered) {
+		t.Errorf("Password was %x, but expected %x", recovered, password)
+	}
+}
+
 var (
 	params    makwa.PublicParameters
 	modulusID = []byte{0xf9, 0x12, 0xb7, 0x9f, 0x98, 0xf3, 0xee, 0xb}

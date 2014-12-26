@@ -76,6 +76,65 @@ func Extend(params PublicParameters, digest *Digest, workFactor uint) error {
 	return nil
 }
 
+// Recover uses the private parameters to recover the plaintext of a password
+// digest.
+func Recover(params PrivateParameters, digest *Digest) ([]byte, error) {
+	if digest.PreHash || digest.PostHashLen > 0 {
+		return nil, errors.New("password cannot be recovered")
+	}
+
+	y := new(big.Int).SetBytes(digest.Hash)
+	p := params.P
+	q := params.Q
+	iq := new(big.Int).ModInverse(q, p)
+	ep := sqrtExp(p, digest.WorkFactor+1)
+	eq := sqrtExp(q, digest.WorkFactor+1)
+
+	x1p := new(big.Int).Mod(y, p)
+	x1p = x1p.Exp(x1p, ep, p)
+
+	x1q := new(big.Int).Mod(y, q)
+	x1q = x1q.Exp(x1q, eq, q)
+
+	x2p := new(big.Int).Sub(p, x1p)
+	x2p = x2p.Mod(x2p, p)
+
+	x2q := new(big.Int).Sub(q, x1q)
+	x2q = x2q.Mod(x2q, q)
+
+	xc := []*big.Int{
+		crt(p, q, iq, x1p, x1q),
+		crt(p, q, iq, x1p, x2q),
+		crt(p, q, iq, x2p, x1q),
+		crt(p, q, iq, x2p, x2q),
+	}
+
+	for _, v := range xc {
+		buf := pad(params.N, v)
+
+		if buf[0] != 0x00 {
+			continue
+		}
+
+		k := len(buf)
+		u := int(buf[k-1]) & 0xFF
+		if u > (k - 32) {
+			continue
+		}
+
+		password := buf[k-u-1 : len(buf)-1]
+
+		sb := kdf(params.Hash, append(append(digest.Salt, password...), byte(u)), uint(k-2-u))
+		sb = append([]byte{0x00}, sb...)
+
+		if bytes.HasPrefix(buf, sb) {
+			return password, nil
+		}
+	}
+
+	return nil, errors.New("password cannot be recovered")
+}
+
 // Hash returns a digest of the given password using the given parameters. If
 // the given salt is nil, generates a random salt of sufficient length.
 func Hash(
@@ -136,7 +195,10 @@ func Hash(
 	}, nil
 }
 
-var two = big.NewInt(2)
+var (
+	one = big.NewInt(1)
+	two = big.NewInt(2)
+)
 
 func pad(modulus, x *big.Int) []byte {
 	modLen := (modulus.BitLen() + 7) >> 3
@@ -207,4 +269,21 @@ func wfMant(wf uint32) (mant, log uint32, err error) {
 	}
 
 	return wf, j, nil
+}
+
+func sqrtExp(p *big.Int, w uint) *big.Int {
+	e := new(big.Int).Add(p, one)
+	e = e.Rsh(e, 2)
+
+	p2 := new(big.Int).Sub(p, one)
+	return new(big.Int).Exp(e, big.NewInt(int64(w)), p2)
+}
+
+func crt(p, q, iq, zp, zq *big.Int) *big.Int {
+	h := new(big.Int).Sub(zp, zq)
+	h = h.Mul(h, iq)
+	h = h.Mod(h, p)
+
+	z := new(big.Int).Mul(q, h)
+	return z.Add(zq, z)
 }
