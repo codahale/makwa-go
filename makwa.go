@@ -57,7 +57,7 @@ func CheckPassword(
 }
 
 // Extend re-hashes the given digest to increase its work factor.
-func Extend(params PublicParameters, digest *Digest, workFactor uint) error {
+func Extend(params PublicParameters, digest *Digest, workFactor int) error {
 	if !bytes.Equal(digest.ModulusID, params.ModulusID()) {
 		return ErrWrongParams
 	}
@@ -128,7 +128,7 @@ func Recover(params PrivateParameters, digest *Digest) ([]byte, error) {
 
 		password := buf[k-u-1 : len(buf)-1]
 
-		x := kdf(params.Hash, append(append(digest.Salt, password...), byte(u)), uint(k-2-u))
+		x := kdf(params.Hash, append(append(digest.Salt, password...), byte(u)), k-2-u)
 		x = append(append(append([]byte{0x00}, x...), password...), byte(u))
 
 		if subtle.ConstantTimeCompare(x, buf) == 1 {
@@ -144,9 +144,9 @@ func Recover(params PrivateParameters, digest *Digest) ([]byte, error) {
 func Hash(
 	params PublicParameters,
 	password, salt []byte,
-	workFactor uint,
+	workFactor int,
 	preHash bool,
-	postHashLen uint,
+	postHashLen int,
 ) (*Digest, error) {
 	if _, _, err := wfMant(uint32(workFactor)); err != nil {
 		return nil, err
@@ -174,13 +174,13 @@ func Hash(
 	}
 
 	// sb = KDF(salt || password || BYTE(u), k - 2 - u)
-	sb := kdf(params.Hash, append(append(salt, password...), byte(u)), uint(k-2-u))
+	sb := kdf(params.Hash, append(append(salt, password...), byte(u)), k-2-u)
 
 	//xb = BYTE(0x00) || sb || password || BYTE(u)
 	xb := append(append(append([]byte{0x00}, sb...), password...), byte(u))
 
 	x := new(big.Int).SetBytes(xb)
-	for i := uint(0); i <= workFactor; i++ {
+	for i := 0; i <= workFactor; i++ {
 		x = new(big.Int).Exp(x, two, params.N)
 	}
 
@@ -213,7 +213,7 @@ func pad(modulus, x *big.Int) []byte {
 	return out[:modLen]
 }
 
-func kdf(alg func() hash.Hash, data []byte, outLen uint) []byte {
+func kdf(alg func() hash.Hash, data []byte, outLen int) []byte {
 	// r = output length of h() in bytes
 	r := alg().Size()
 
@@ -275,7 +275,7 @@ func wfMant(wf uint32) (mant, log uint32, err error) {
 	return wf, j, nil
 }
 
-func sqrtExp(p *big.Int, w uint) *big.Int {
+func sqrtExp(p *big.Int, w int) *big.Int {
 	e := new(big.Int).Add(p, one)
 	e = e.Rsh(e, 2)
 

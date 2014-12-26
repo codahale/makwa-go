@@ -12,9 +12,9 @@ type Digest struct {
 	ModulusID   []byte
 	Hash        []byte
 	Salt        []byte
-	WorkFactor  uint
+	WorkFactor  int
 	PreHash     bool
-	PostHashLen uint
+	PostHashLen int
 }
 
 // MarshalText marshals a digest into a text format.
@@ -78,7 +78,7 @@ func (d *Digest) UnmarshalText(text []byte) error {
 
 	d.WorkFactor = 1
 	for i := 0; i <= log; i++ {
-		d.WorkFactor *= uint(mantissa)
+		d.WorkFactor *= mantissa
 	}
 
 	d.Salt, err = b64Decode(parts[2])
@@ -94,13 +94,13 @@ func (d *Digest) UnmarshalText(text []byte) error {
 	switch parts[1][0] {
 	case 'b':
 		d.PreHash = true
-		d.PostHashLen = uint(len(d.Hash))
+		d.PostHashLen = len(d.Hash)
 	case 'r':
 		d.PreHash = true
 		d.PostHashLen = 0
 	case 's':
 		d.PreHash = false
-		d.PostHashLen = uint(len(d.Hash))
+		d.PostHashLen = len(d.Hash)
 	case 'n':
 		d.PreHash = false
 		d.PostHashLen = 0

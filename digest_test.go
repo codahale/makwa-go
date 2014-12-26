@@ -45,7 +45,7 @@ func TestDigestUnmarshalText(t *testing.T) {
 		t.Errorf("Salt was %x but expected %x", d.Salt, salt)
 	}
 
-	if v, want := d.WorkFactor, uint(4096); v != want {
+	if v, want := d.WorkFactor, 4096; v != want {
 		t.Errorf("WorkFactor was %v, but expected %v", v, want)
 	}
 
@@ -53,7 +53,7 @@ func TestDigestUnmarshalText(t *testing.T) {
 		t.Errorf("PreHash was %v, but expected false", d.PreHash)
 	}
 
-	if v, want := d.PostHashLen, uint(12); v != want {
+	if v, want := d.PostHashLen, 12; v != want {
 		t.Errorf("PostHashLen was %v, but expected %v", v, want)
 	}
 }
