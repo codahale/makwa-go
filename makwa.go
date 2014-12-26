@@ -124,10 +124,10 @@ func Recover(params PrivateParameters, digest *Digest) ([]byte, error) {
 
 		password := buf[k-u-1 : len(buf)-1]
 
-		sb := kdf(params.Hash, append(append(digest.Salt, password...), byte(u)), uint(k-2-u))
-		sb = append([]byte{0x00}, sb...)
+		x := kdf(params.Hash, append(append(digest.Salt, password...), byte(u)), uint(k-2-u))
+		x = append(append(append([]byte{0x00}, x...), password...), byte(u))
 
-		if bytes.HasPrefix(buf, sb) {
+		if subtle.ConstantTimeCompare(x, buf) == 1 {
 			return password, nil
 		}
 	}
