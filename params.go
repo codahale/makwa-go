@@ -29,12 +29,12 @@ func GenerateParameters(bits int) (*PrivateParameters, error) {
 	pBits := (bits + 1) >> 1
 	qBits := bits - pBits
 
-	p, err := rand.Prime(rand.Reader, pBits)
+	p, err := genPrime(pBits)
 	if err != nil {
 		return nil, err
 	}
 
-	q, err := rand.Prime(rand.Reader, qBits)
+	q, err := genPrime(qBits)
 	if err != nil {
 		return nil, err
 	}
@@ -47,4 +47,21 @@ func GenerateParameters(bits int) (*PrivateParameters, error) {
 		P: p,
 		Q: q,
 	}, nil
+}
+
+var (
+	three = big.NewInt(3)
+	four  = big.NewInt(4)
+)
+
+func genPrime(bits int) (*big.Int, error) {
+	for {
+		n, err := rand.Prime(rand.Reader, bits)
+		if err != nil {
+			return nil, err
+		}
+		if new(big.Int).Mod(n, four).Cmp(three) == 0 {
+			return n, nil
+		}
+	}
 }
