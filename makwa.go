@@ -83,6 +83,10 @@ func Recover(params PrivateParameters, digest *Digest) ([]byte, error) {
 		return nil, errors.New("password cannot be recovered")
 	}
 
+	if !bytes.Equal(digest.ModulusID, params.ModulusID()) {
+		return nil, ErrWrongParams
+	}
+
 	y := new(big.Int).SetBytes(digest.Hash)
 	p := params.P
 	q := params.Q
