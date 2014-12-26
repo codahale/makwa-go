@@ -29,11 +29,7 @@ var ErrWrongParams = errors.New("wrong parameters")
 var ErrInvalidWorkFactor = errors.New("invalid work factor")
 
 // CheckPassword safely compares a password to a digest of a password.
-func CheckPassword(
-	params PublicParameters,
-	digest *Digest,
-	password []byte,
-) error {
+func CheckPassword(params PublicParameters, digest *Digest, password []byte) error {
 	if !bytes.Equal(digest.ModulusID, params.ModulusID()) {
 		return ErrWrongParams
 	}
@@ -141,13 +137,7 @@ func Recover(params PrivateParameters, digest *Digest) ([]byte, error) {
 
 // Hash returns a digest of the given password using the given parameters. If
 // the given salt is nil, generates a random salt of sufficient length.
-func Hash(
-	params PublicParameters,
-	password, salt []byte,
-	workFactor int,
-	preHash bool,
-	postHashLen int,
-) (*Digest, error) {
+func Hash(params PublicParameters, password, salt []byte, workFactor int, preHash bool, postHashLen int) (*Digest, error) {
 	if _, _, err := wfMant(uint32(workFactor)); err != nil {
 		return nil, err
 	}
