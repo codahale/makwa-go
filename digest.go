@@ -17,6 +17,11 @@ type Digest struct {
 	PostHashLen int
 }
 
+func (d *Digest) String() string {
+	b, _ := d.MarshalText()
+	return string(b)
+}
+
 // MarshalText marshals a digest into a text format.
 func (d *Digest) MarshalText() ([]byte, error) {
 	b := new(bytes.Buffer)
